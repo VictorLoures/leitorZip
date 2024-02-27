@@ -282,7 +282,7 @@ function App() {
           </FormGroup>
         </div>
         <label for="inputFile" className="inputFile">
-          ZIP para modificar
+          Importar arquivo
         </label>
         <input
           type="file"
