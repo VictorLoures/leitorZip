@@ -82,8 +82,7 @@ function App() {
         const keys = Object.keys(res.files);
         zipDownload.files = {};
         keys.map((key) => {
-          const anoParaUsar = informarAno ? anoInformado : anoAtual;
-          const index = res.files[key].name.lastIndexOf(anoParaUsar) + 4;
+          const index = res.files[key].name.lastIndexOf(".xml") - 11;
           const name = res.files[key].name.substring(index);
 
           //inclui o arquivo novo
@@ -102,10 +101,9 @@ function App() {
       if (res.files) {
         const keys = Object.keys(res.files);
         const notasOrdenadas = [];
-        const anoParaUsar = informarAno ? anoInformado : anoAtual;
         keys.map((key) => {
           if (key.includes(".xml")) {
-            const index = res.files[key].name.lastIndexOf(anoParaUsar) + 4;
+            const index = res.files[key].name.lastIndexOf(".xml") - 11;
             const name = res.files[key].name.substring(index);
             //inclui o arquivo novo
             notasOrdenadas.push(parseInt(name.split(/\D+/).join(""), 10));
