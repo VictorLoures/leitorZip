@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/leitorZip/static/css/main.44f8eff5.css",
-    "main.js": "/leitorZip/static/js/main.7c46d3e4.js",
+    "main.js": "/leitorZip/static/js/main.ee08d3f4.js",
     "static/js/787.39e2c93f.chunk.js": "/leitorZip/static/js/787.39e2c93f.chunk.js",
     "index.html": "/leitorZip/index.html",
     "main.44f8eff5.css.map": "/leitorZip/static/css/main.44f8eff5.css.map",
-    "main.7c46d3e4.js.map": "/leitorZip/static/js/main.7c46d3e4.js.map",
+    "main.ee08d3f4.js.map": "/leitorZip/static/js/main.ee08d3f4.js.map",
     "787.39e2c93f.chunk.js.map": "/leitorZip/static/js/787.39e2c93f.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.44f8eff5.css",
-    "static/js/main.7c46d3e4.js"
+    "static/js/main.ee08d3f4.js"
   ]
 }
