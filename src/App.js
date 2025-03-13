@@ -1,11 +1,10 @@
 import "./App.css";
-import JSZip, { file } from "jszip";
+import JSZip from "jszip";
 import download from "js-file-download";
 import { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
   UncontrolledAccordion,
-  Accordion,
   AccordionBody,
   AccordionHeader,
   AccordionItem,
@@ -14,13 +13,13 @@ import {
   Modal,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   Label,
   Input,
 } from "reactstrap";
 import { anos } from "./files/enums";
 
 const anoAtual = new Date().getFullYear();
+const XLSX = require("xlsx");
 
 const styleDisabled = {
   backgroundColor: "gray",
@@ -29,13 +28,17 @@ const styleDisabled = {
 
 function App() {
   const [path, setPath] = useState(null);
+  const [pathPrefeitura, setPathPrefeitura] = useState(null);
   const [fileName, setFileName] = useState(null);
+  const [fileNamePref, setFileNamePref] = useState(null);
   const [informarAno, setInformarAno] = useState(false);
   const [anoInformado, setAnoInformado] = useState(null);
   const [infoGestor, setInfoGestor] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  const [showResultPref, setShowResultPref] = useState(false);
   const [notasPresentesGestor, setNotasPresentesGestor] = useState(null);
   const [notasPresentesZip, setNotasPresentesZip] = useState(null);
+  const [mapNotasPref, setMapNotasPref] = useState(null);
 
   const [modal, setModal] = useState(false);
   const [notas, setNotas] = useState(null);
@@ -47,6 +50,8 @@ function App() {
   };
 
   const [modalComparacao, setModalComparacao] = useState(false);
+  const [modalComparacaoPrefeitura, setModalComparacaoPrefeitura] =
+    useState(false);
   const [notasGestor, setNotasGestor] = useState(null);
   const toggleComparacao = () => {
     if (!modalComparacao) {
@@ -60,6 +65,16 @@ function App() {
     setModalComparacao(!modalComparacao);
   };
 
+  const toggleComparacaoPrefeitura = () => {
+    if (!modalComparacaoPrefeitura) {
+      setInfoGestor(null);
+      setShowResultPref(false);
+      setShowResultPref(false);
+      setMapNotasPref(null);
+    }
+    setModalComparacaoPrefeitura(!modalComparacaoPrefeitura);
+  };
+
   const downloadZip = (zip, name) => {
     zip.generateAsync({ type: "blob" }).then((blobdata) => {
       const zipblob = new Blob([blobdata]);
@@ -70,8 +85,17 @@ function App() {
 
   const setZip = (file) => {
     setPath(file.target.files[0]);
+    setFileName(getNameFmt(file));
+  };
+
+  const setArquivoPrefeitura = (file) => {
+    setPathPrefeitura(file.target.files[0]);
+    setFileNamePref(getNameFmt(file));
+  };
+
+  const getNameFmt = (file) => {
     const name = file.target.value;
-    setFileName(name.substring(name.lastIndexOf("\\") + 1, name.indexOf(".")));
+    return name.substring(name.lastIndexOf("\\") + 1, name.indexOf("."));
   };
 
   const downloadZipRenomeado = () => {
@@ -81,11 +105,10 @@ function App() {
       if (res.files) {
         const keys = Object.keys(res.files);
         zipDownload.files = {};
-        keys.map((key) => {
+        keys.forEach((key) => {
           const index = res.files[key].name.lastIndexOf(".xml") - 11;
           const name = res.files[key].name.substring(index);
 
-          //inclui o arquivo novo
           res.files[key].name = name;
           zipDownload.files[res.files[key].name] = res.files[key];
         });
@@ -101,11 +124,10 @@ function App() {
       if (res.files) {
         const keys = Object.keys(res.files);
         const notasOrdenadas = [];
-        keys.map((key) => {
+        keys.forEach((key) => {
           if (key.includes(".xml")) {
             const index = res.files[key].name.lastIndexOf(".xml") - 11;
             const name = res.files[key].name.substring(index);
-            //inclui o arquivo novo
             notasOrdenadas.push(parseInt(name.split(/\D+/).join(""), 10));
           }
         });
@@ -122,7 +144,7 @@ function App() {
     setAnoInformado(+ano.target.value);
   };
 
-  const traduzirInfoGestor = () => {
+  const notasOrdenadasGestorFmt = () => {
     const linhas = infoGestor.split("\n");
     const notasGestorOrdenadas = [];
     const anoParaUsar = informarAno ? anoInformado : anoAtual;
@@ -131,6 +153,11 @@ function App() {
         +it.substring(it.indexOf(anoParaUsar) + 4, it.indexOf("valor") - 2)
       );
     });
+    return notasGestorOrdenadas;
+  };
+
+  const traduzirInfoGestor = () => {
+    const notasGestorOrdenadas = notasOrdenadasGestorFmt();
     verificarNotasPresentesGestor(notasGestorOrdenadas);
     verificarNotasPresentesZip(notasGestorOrdenadas);
     setNotasGestor(notasGestorOrdenadas);
@@ -158,6 +185,40 @@ function App() {
     });
     setNotasPresentesZip(result);
   };
+
+  const lerArquivoPrefeitura = () => {
+    const infosGestor = notasOrdenadasGestorFmt();
+    const mapNotas = new Map();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      jsonData.forEach((nota) => {
+        const numeroNota = nota["Número da Nota"];
+        const descriminacaoNota = nota["Discriminação dos Serviços"];
+        const numeroNotaFmt = +formatarNumeroNota(numeroNota);
+        if (
+          infosGestor.includes(numeroNotaFmt) &&
+          !descriminacaoNota.includes("NITRUS")
+        ) {
+          mapNotas.set(numeroNotaFmt, descriminacaoNota.substring(0, 27));
+        }
+      });
+      setMapNotasPref(mapNotas);
+      setShowResultPref(mapNotas && mapNotas.size > 0);
+    };
+    reader.readAsArrayBuffer(pathPrefeitura);
+  };
+
+  function formatarNumeroNota(num) {
+    const partes = num.toString().split("0000");
+    return partes.length > 1 ? partes[1].replace(/^0+/, "") : "";
+  }
 
   const getModal = () => {
     return (
@@ -218,7 +279,9 @@ function App() {
               </AccordionBody>
             </AccordionItem>
             <AccordionItem disabled={true}>
-              <AccordionHeader targetId="2">Resultado</AccordionHeader>
+              <AccordionHeader targetId="2">
+                Resultado do "Comparar"
+              </AccordionHeader>
               <AccordionBody accordionId="2">
                 {!showResult ? (
                   "Preencha o campo acima para vizualizar os resultados!"
@@ -242,6 +305,95 @@ function App() {
                         ? "Nenhuma"
                         : notasPresentesZip.map((it) => it + ", ")}
                     </h6>
+                  </div>
+                )}
+              </AccordionBody>
+            </AccordionItem>
+          </UncontrolledAccordion>
+        </ModalBody>
+      </Modal>
+    );
+  };
+
+  const getModalComparacaoPrefeitura = () => {
+    return (
+      <Modal
+        isOpen={modalComparacaoPrefeitura}
+        toggle={toggleComparacaoPrefeitura}
+      >
+        <ModalHeader toggle={toggleComparacaoPrefeitura}>
+          Comparar com informações da prefeitura
+        </ModalHeader>
+        <ModalBody>
+          <UncontrolledAccordion defaultOpen={["1", "2"]} stayOpen>
+            <AccordionItem>
+              <AccordionHeader targetId="1">
+                Informações do Gestor
+              </AccordionHeader>
+              <AccordionBody accordionId="1">
+                <div style={{ textAlign: "center" }}>
+                  <Label for="exampleText">Informações do gestor</Label>
+                  <Input
+                    id="exampleText"
+                    name="text"
+                    type="textarea"
+                    onChange={(info) => setInfoGestor(info.target.value)}
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    color: "white",
+                    marginTop: "20px",
+                  }}
+                >
+                  <label for="inputFilePref" className="inputFile">
+                    Importart xls da prefeitura
+                  </label>
+                  <input
+                    type="file"
+                    id="inputFilePref"
+                    onChange={setArquivoPrefeitura}
+                    className="hidden"
+                    textContent="teste"
+                    name="inputFile"
+                    accept=".xls, .xlsx"
+                  />
+                  {fileNamePref && (
+                    <p style={{ color: "black" }}>
+                      Arquivo escolhido: {fileNamePref + ".xls"}
+                    </p>
+                  )}
+                  <Button
+                    onClick={lerArquivoPrefeitura}
+                    color="primary"
+                    style={{ cursor: "pointer", marginTop: 5 }}
+                    disabled={!pathPrefeitura || !infoGestor}
+                  >
+                    Verificar notas da prefeitura
+                  </Button>
+                </div>
+              </AccordionBody>
+            </AccordionItem>
+            <AccordionItem disabled={true} isOpen={true}>
+              <AccordionHeader targetId="2">
+                Resultado do "Verificar notas prefeitura"
+              </AccordionHeader>
+              <AccordionBody accordionId="2">
+                {!showResultPref ? (
+                  "Preencha os campos para vizualizar os resultados!"
+                ) : (
+                  <div style={{ textAlign: "center" }}>
+                    <p>
+                      Notas com descrição Calima:{" "}
+                      {Array.from(mapNotasPref).map(([key, value]) => (
+                        <p key={key}>
+                          {key}: {value}
+                        </p>
+                      ))}
+                    </p>
                   </div>
                 )}
               </AccordionBody>
@@ -303,6 +455,13 @@ function App() {
           Comparação XML
         </Button>
         <Button
+          onClick={toggleComparacaoPrefeitura}
+          color="info"
+          style={{ marginBottom: 5, cursor: "pointer" }}
+        >
+          Comparar informações da prefeitura
+        </Button>
+        <Button
           onClick={toggle}
           color="success"
           outline={!path}
@@ -322,6 +481,7 @@ function App() {
         </Button>
         {getModal()}
         {getModalComparacao()}
+        {getModalComparacaoPrefeitura()}
       </header>
     </div>
   );
