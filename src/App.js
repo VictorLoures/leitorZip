@@ -36,6 +36,7 @@ function App() {
   const [infoGestor, setInfoGestor] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [showResultPref, setShowResultPref] = useState(false);
+  const [showResultPrefSemNotas, setShowResultPrefSemNotas] = useState(false);
   const [notasPresentesGestor, setNotasPresentesGestor] = useState(null);
   const [notasPresentesZip, setNotasPresentesZip] = useState(null);
   const [mapNotasPref, setMapNotasPref] = useState(null);
@@ -69,7 +70,7 @@ function App() {
     if (!modalComparacaoPrefeitura) {
       setInfoGestor(null);
       setShowResultPref(false);
-      setShowResultPref(false);
+      setShowResultPrefSemNotas(false);
       setMapNotasPref(null);
     }
     setModalComparacaoPrefeitura(!modalComparacaoPrefeitura);
@@ -211,6 +212,7 @@ function App() {
       });
       setMapNotasPref(mapNotas);
       setShowResultPref(mapNotas && mapNotas.size > 0);
+      setShowResultPrefSemNotas(mapNotas && mapNotas.size === 0);
     };
     reader.readAsArrayBuffer(pathPrefeitura);
   };
@@ -260,9 +262,9 @@ function App() {
               </AccordionHeader>
               <AccordionBody accordionId="1">
                 <div style={{ textAlign: "center" }}>
-                  <Label for="exampleText">Informações do gestor</Label>
+                  <Label for="infosGestor">Informações do gestor</Label>
                   <Input
-                    id="exampleText"
+                    id="infosGestor"
                     name="text"
                     type="textarea"
                     onChange={(info) => setInfoGestor(info.target.value)}
@@ -332,9 +334,9 @@ function App() {
               </AccordionHeader>
               <AccordionBody accordionId="1">
                 <div style={{ textAlign: "center" }}>
-                  <Label for="exampleText">Informações do gestor</Label>
+                  <Label for="infosGestor">Informações do gestor</Label>
                   <Input
-                    id="exampleText"
+                    id="infosGestor"
                     name="text"
                     type="textarea"
                     onChange={(info) => setInfoGestor(info.target.value)}
@@ -382,20 +384,24 @@ function App() {
                 Resultado do "Verificar notas prefeitura"
               </AccordionHeader>
               <AccordionBody accordionId="2">
-                {!showResultPref ? (
+                {!showResultPref && !showResultPrefSemNotas ? (
                   "Preencha os campos para vizualizar os resultados!"
                 ) : (
                   <div style={{ textAlign: "center" }}>
-                    <p>
-                      Notas com descrição Calima:{" "}
-                      {Array.from(mapNotasPref).map(([key, value]) => (
-                        <p key={key}>
-                          {key}: {value}
-                        </p>
-                      ))}
-                    </p>
+                    {!showResultPrefSemNotas && (
+                      <p>
+                        Notas com descrição Calima:{" "}
+                        {Array.from(mapNotasPref).map(([key, value]) => (
+                          <p key={key}>
+                            {key}: {value}
+                          </p>
+                        ))}
+                      </p>
+                    )}
                   </div>
                 )}
+                {showResultPrefSemNotas &&
+                  "Não foram encontradas notas do Calima!"}
               </AccordionBody>
             </AccordionItem>
           </UncontrolledAccordion>
