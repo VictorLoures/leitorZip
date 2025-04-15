@@ -42,21 +42,22 @@ function App() {
 
   const [modal, setModal] = useState(false);
   const [notas, setNotas] = useState(null);
-  const toggle = () => {
-    if (!modal) {
-      listarNotas();
-    }
-    setModal(!modal);
-  };
 
   const [modalComparacao, setModalComparacao] = useState(false);
   const [modalComparacaoPrefeitura, setModalComparacaoPrefeitura] =
     useState(false);
   const [notasGestor, setNotasGestor] = useState(null);
+
+  const toggle = () => {
+    setModal(!modal);
+  };
+
   const toggleComparacao = () => {
     if (modalComparacao) {
       setInfoGestor(null);
       setShowResult(false);
+      setPath(null);
+      setFileName(null);
       setNotasPresentesGestor(null);
       setNotasPresentesZip(null);
     }
@@ -74,8 +75,10 @@ function App() {
   };
 
   const setZip = (file) => {
-    setPath(file.target.files[0]);
+    const fileData = file.target.files[0];
+    setPath(fileData);
     setFileName(getNameFmt(file));
+    listarNotas(fileData);
   };
 
   const setArquivoPrefeitura = (file) => {
@@ -88,9 +91,9 @@ function App() {
     return name.substring(name.lastIndexOf("\\") + 1, name.indexOf("."));
   };
 
-  const listarNotas = () => {
+  const listarNotas = (file = path) => {
     const zip = JSZip();
-    zip.loadAsync(path).then(function (res) {
+    zip.loadAsync(file).then(function (res) {
       if (res.files) {
         const keys = Object.keys(res.files);
         const notasOrdenadas = [];
@@ -198,7 +201,13 @@ function App() {
           Notas ordenadas / Total: {notas ? notas.length : 0}
         </ModalHeader>
         <ModalBody>
-          <div style={{ textAlign: "center", overflow: "auto", height: "450" }}>
+          <div
+            style={{
+              textAlign: "center",
+              overflowY: "auto",
+              height: "450",
+            }}
+          >
             {notas &&
               notas.map((it) => (
                 <>
@@ -449,14 +458,14 @@ function App() {
           color="danger"
           style={{ marginBottom: 5, cursor: "pointer" }}
         >
-          Comparar ZIP do gestor
+          Comparar ZIP do gestor (Início do mês)
         </Button>
         <Button
           onClick={toggleComparacaoPrefeitura}
           color="info"
           style={{ marginBottom: 5, cursor: "pointer" }}
         >
-          Comparar XLS da prefeitura
+          Comparar XLS da prefeitura (Meio do mês)
         </Button>
         {getModal()}
         {getModalComparacao()}
