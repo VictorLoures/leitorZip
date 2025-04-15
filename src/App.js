@@ -1,6 +1,5 @@
 import "./App.css";
 import JSZip from "jszip";
-import download from "js-file-download";
 import { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -43,23 +42,22 @@ function App() {
 
   const [modal, setModal] = useState(false);
   const [notas, setNotas] = useState(null);
-  const toggle = () => {
-    if (!modal) {
-      listarNotas();
-    }
-    setModal(!modal);
-  };
 
   const [modalComparacao, setModalComparacao] = useState(false);
   const [modalComparacaoPrefeitura, setModalComparacaoPrefeitura] =
     useState(false);
   const [notasGestor, setNotasGestor] = useState(null);
+
+  const toggle = () => {
+    setModal(!modal);
+  };
+
   const toggleComparacao = () => {
-    if (!modalComparacao) {
-      listarNotas();
-    } else {
+    if (modalComparacao) {
       setInfoGestor(null);
       setShowResult(false);
+      setPath(null);
+      setFileName(null);
       setNotasPresentesGestor(null);
       setNotasPresentesZip(null);
     }
@@ -76,17 +74,11 @@ function App() {
     setModalComparacaoPrefeitura(!modalComparacaoPrefeitura);
   };
 
-  const downloadZip = (zip, name) => {
-    zip.generateAsync({ type: "blob" }).then((blobdata) => {
-      const zipblob = new Blob([blobdata]);
-      download(zipblob, name);
-      setTimeout(() => window.location.reload(true), 500);
-    });
-  };
-
   const setZip = (file) => {
-    setPath(file.target.files[0]);
+    const fileData = file.target.files[0];
+    setPath(fileData);
     setFileName(getNameFmt(file));
+    listarNotas(fileData);
   };
 
   const setArquivoPrefeitura = (file) => {
@@ -99,29 +91,9 @@ function App() {
     return name.substring(name.lastIndexOf("\\") + 1, name.indexOf("."));
   };
 
-  const downloadZipRenomeado = () => {
+  const listarNotas = (file = path) => {
     const zip = JSZip();
-    const zipDownload = JSZip();
-    zip.loadAsync(path).then(function (res) {
-      if (res.files) {
-        const keys = Object.keys(res.files);
-        zipDownload.files = {};
-        keys.forEach((key) => {
-          const index = res.files[key].name.lastIndexOf(".xml") - 11;
-          const name = res.files[key].name.substring(index);
-
-          res.files[key].name = name;
-          zipDownload.files[res.files[key].name] = res.files[key];
-        });
-        downloadZip(zipDownload, fileName + "Renomeado.zip");
-        document.getElementById("inputFile").value = "";
-      }
-    });
-  };
-
-  const listarNotas = () => {
-    const zip = JSZip();
-    zip.loadAsync(path).then(function (res) {
+    zip.loadAsync(file).then(function (res) {
       if (res.files) {
         const keys = Object.keys(res.files);
         const notasOrdenadas = [];
@@ -229,7 +201,13 @@ function App() {
           Notas ordenadas / Total: {notas ? notas.length : 0}
         </ModalHeader>
         <ModalBody>
-          <div style={{ textAlign: "center", overflow: "auto", height: "450" }}>
+          <div
+            style={{
+              textAlign: "center",
+              overflowY: "auto",
+              height: "450",
+            }}
+          >
             {notas &&
               notas.map((it) => (
                 <>
@@ -269,6 +247,43 @@ function App() {
                     type="textarea"
                     onChange={(info) => setInfoGestor(info.target.value)}
                   />
+                  <div
+                    style={{
+                      color: "white",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginTop: "10px",
+                    }}
+                  >
+                    <label for="inputFile" className="inputFile">
+                      Importar arquivo
+                    </label>
+                    <input
+                      type="file"
+                      id="inputFile"
+                      onChange={setZip}
+                      className="hidden"
+                      textContent="teste"
+                      name="inputFile"
+                      accept=".zip"
+                    />
+                    {fileName && (
+                      <p style={{ color: "black" }}>
+                        Arquivo escolhido: {fileName + ".zip"}
+                      </p>
+                    )}
+                    <Button
+                      onClick={toggle}
+                      color="success"
+                      outline={!path}
+                      disabled={!path}
+                      style={{ marginBottom: 5, cursor: "pointer" }}
+                    >
+                      Listar número das notas ordenadas
+                    </Button>
+                  </div>
                   <Button
                     onClick={traduzirInfoGestor}
                     color="primary"
@@ -417,73 +432,40 @@ function App() {
           <FormGroup switch>
             <Input type="switch" onClick={setInfoAno} id="switch1" />
             <Label switch={"switch1"}>Informar ano</Label>
-            <Input
-              id="exampleSelect"
-              name="select"
-              type="select"
-              disabled={!informarAno}
-              style={!informarAno ? styleDisabled : {}}
-              onBlur={changeAnoInformado}
-            >
-              {anos.map((it) => {
-                return it === anoAtual ? (
-                  <option selected>{it}</option>
-                ) : (
-                  <option>{it}</option>
-                );
-              })}
-            </Input>
-            <br />
+            {informarAno && (
+              <Input
+                id="exampleSelect"
+                name="select"
+                type="select"
+                disabled={!informarAno}
+                style={!informarAno ? styleDisabled : {}}
+                onBlur={changeAnoInformado}
+              >
+                {anos.map((it) => {
+                  return it === anoAtual ? (
+                    <option selected>{it}</option>
+                  ) : (
+                    <option>{it}</option>
+                  );
+                })}
+              </Input>
+            )}
             <br />
           </FormGroup>
         </div>
-        <label for="inputFile" className="inputFile">
-          Importar arquivo
-        </label>
-        <input
-          type="file"
-          id="inputFile"
-          onChange={setZip}
-          className="hidden"
-          textContent="teste"
-          name="inputFile"
-          accept=".zip"
-        />
-        {fileName && <p>Arquivo escolhido: {fileName + ".zip"}</p>}
-        <br />
         <Button
           onClick={toggleComparacao}
           color="danger"
-          outline={!path}
-          disabled={!path}
           style={{ marginBottom: 5, cursor: "pointer" }}
         >
-          Comparação XML
+          Comparar ZIP do gestor (Início do mês)
         </Button>
         <Button
           onClick={toggleComparacaoPrefeitura}
           color="info"
           style={{ marginBottom: 5, cursor: "pointer" }}
         >
-          Comparar informações da prefeitura
-        </Button>
-        <Button
-          onClick={toggle}
-          color="success"
-          outline={!path}
-          disabled={!path}
-          style={{ marginBottom: 5, cursor: "pointer" }}
-        >
-          Listar número das notas ordenadas
-        </Button>
-        <Button
-          onClick={downloadZipRenomeado}
-          color="primary"
-          outline={!path}
-          disabled={!path}
-          style={{ cursor: "pointer" }}
-        >
-          Baixar ZIP renomeado
+          Comparar XLS da prefeitura (Meio do mês)
         </Button>
         {getModal()}
         {getModalComparacao()}
