@@ -190,8 +190,9 @@ function App() {
   };
 
   function formatarNumeroNota(num) {
-    const partes = num.toString().split("0000");
-    return partes.length > 1 ? partes[1].replace(/^0+/, "") : "";
+    const regex = /^20\d{2}0*(\d+)$/;
+    const match = String(num).match(regex);
+    return match ? Number(match[1]) : '"';
   }
 
   const getModal = () => {
@@ -405,7 +406,7 @@ function App() {
                   <div style={{ textAlign: "center" }}>
                     {!showResultPrefSemNotas && (
                       <p>
-                        Notas com descrição Calima:{" "}
+                        Notas sem descrição NITRUS:{" "}
                         {Array.from(mapNotasPref).map(([key, value]) => (
                           <p key={key}>
                             {key}: {value}
