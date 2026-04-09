@@ -17,6 +17,8 @@ import {
   Spinner
 } from 'reactstrap';
 import { anos } from './files/enums';
+import { doc } from './GeradorPdf.tsx';
+import { pdf } from '@react-pdf/renderer';
 
 const anoAtual = new Date().getFullYear();
 const XLSX = require('xlsx');
@@ -39,6 +41,7 @@ function App() {
   const [informarAno, setInformarAno] = useState(false);
   const [anoInformado, setAnoInformado] = useState(null);
   const [infoGestor, setInfoGestor] = useState(null);
+  const [infoGestorPdf, setInfoGestorPdf] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [showResultPref, setShowResultPref] = useState(false);
   const [showResultSum, setShowResultSum] = useState(false);
@@ -54,6 +57,7 @@ function App() {
   const [resultSum, setResultSum] = useState('');
 
   const [modalComparacao, setModalComparacao] = useState(false);
+  const [modalPdf, setModalPdf] = useState(false);
   const [modalComparacaoPrefeitura, setModalComparacaoPrefeitura] = useState(false);
   const [notasGestor, setNotasGestor] = useState(null);
 
@@ -503,6 +507,67 @@ function App() {
     );
   };
 
+  const gerarPdF = () => {
+    const linhas = ('\t' + infoGestorPdf).split('\n');
+    const dados = linhas.map((linha) => linha.split('\t'));
+    doc(dados).then(async (res) => {
+      const blob = await pdf(res).toBlob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    });
+  };
+
+  const togglePdf = () => {
+    setInfoGestorPdf(null);
+    setModalPdf(!modalPdf);
+  };
+
+  const getModalPDF = () => {
+    return (
+      <Modal isOpen={modalPdf} toggle={togglePdf}>
+        <ModalHeader toggle={toggleComparacao}>Informações</ModalHeader>
+        <ModalBody>
+          <UncontrolledAccordion defaultOpen={['1', '2']} stayOpen>
+            <AccordionItem>
+              <AccordionHeader targetId="1">Informações do Gestor</AccordionHeader>
+              <AccordionBody accordionId="1">
+                <div style={{ textAlign: 'center' }}>
+                  <Label for="infosGestor">Informações do gestor</Label>
+                  <Input
+                    id="infosGestorPdf"
+                    name="text"
+                    type="textarea"
+                    onChange={(info) => setInfoGestorPdf(info.target.value)}
+                  />
+                  <div
+                    style={{
+                      color: 'white',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '10px',
+                      marginTop: '10px'
+                    }}
+                  >
+                    <Button
+                      onClick={gerarPdF}
+                      color="success"
+                      outline={!infoGestorPdf}
+                      disabled={!infoGestorPdf}
+                      style={{ marginBottom: 5, cursor: 'pointer' }}
+                    >
+                      Gerar PDF
+                    </Button>
+                  </div>
+                </div>
+              </AccordionBody>
+            </AccordionItem>
+          </UncontrolledAccordion>
+        </ModalBody>
+      </Modal>
+    );
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -541,9 +606,13 @@ function App() {
         >
           Comparar XLS da prefeitura (Meio do mês)
         </Button>
+        <Button onClick={togglePdf} color="warning" style={{ marginBottom: 5, cursor: 'pointer' }}>
+          Gerar PDF pagamentos
+        </Button>
         {getModal()}
         {getModalComparacao()}
         {getModalComparacaoPrefeitura()}
+        {getModalPDF()}
       </header>
     </div>
   );
