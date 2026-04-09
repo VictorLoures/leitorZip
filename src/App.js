@@ -525,9 +525,9 @@ function App() {
   const getModalPDF = () => {
     return (
       <Modal isOpen={modalPdf} toggle={togglePdf}>
-        <ModalHeader toggle={toggleComparacao}>Informações</ModalHeader>
+        <ModalHeader toggle={togglePdf}>Informações</ModalHeader>
         <ModalBody>
-          <UncontrolledAccordion defaultOpen={['1', '2']} stayOpen>
+          <UncontrolledAccordion defaultOpen={['1']} stayOpen>
             <AccordionItem>
               <AccordionHeader targetId="1">Informações do Gestor</AccordionHeader>
               <AccordionBody accordionId="1">
